@@ -1,0 +1,5 @@
+/opt/clion-2022.2.4/bin/cmake/linux/bin/cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_MAKE_PROGRAM=/opt/clion-2022.2.4/bin/ninja/linux/ninja -G Ninja -S /home/matf-racunarska-grafika/rg_projekat -B /home/matf-racunarska-grafika/rg_projekat/cmake-build-debug
+-- Found ASSIMP: /usr/lib/x86_64-linux-gnu/libassimp.so
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/matf-racunarska-grafika/rg_projekat/cmake-build-debug
