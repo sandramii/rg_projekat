@@ -9,5 +9,10 @@ uniform samplerCube skybox;
 
 void main()
 {
+    float brightness = dot(vec3(FragColor), vec3(0.2126, 0.7152, 0.0722));
+    if(brightness > 1.0)
+        BrightColor = FragColor;
+    else
+        BrightColor = vec4(0.0, 0.0, 0.0, 1.0); // Black color
     FragColor = texture(skybox, TexCoords);
 }

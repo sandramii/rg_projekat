@@ -35,6 +35,7 @@ struct Material {
 in vec2 TexCoords;
 in vec3 Normal;
 in vec3 FragPos;
+
 uniform DirLight dirLight;
 uniform PointLight pointLight;
 uniform SpotLight spotLight;
@@ -42,6 +43,7 @@ uniform Material material;
 uniform vec3 lightColor;
 uniform bool blinn;
 uniform vec3 viewPos;
+
 vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir)
 {
     vec3 lightDir = normalize(-light.direction);
@@ -135,16 +137,11 @@ void main()
     float alpha = texture(material.diffuse, TexCoords).a;
     if(alpha < 0.1)
         discard;
-    // properties
     vec3 norm = normalize(Normal);
     vec3 viewDir = normalize(viewPos - FragPos);
-    // phase 1: directional lighting
     vec3 result = CalcDirLight(dirLight, norm, viewDir);
-    // phase 2: point lights
-    //for(int i = 0; i < NR_POINT_LIGHTS; i++)
-        result += CalcPointLight(pointLight, norm, FragPos, viewDir);
-    // phase 3: spot light
-   result += CalcSpotLight(spotLight, norm, FragPos, viewDir);
+    result += CalcPointLight(pointLight, norm, FragPos, viewDir);
+    result += CalcSpotLight(spotLight, norm, FragPos, viewDir);
 
     FragColor = vec4(result, 1.0);
 }

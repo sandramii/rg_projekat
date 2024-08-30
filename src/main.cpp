@@ -11,6 +11,7 @@
 #include <learnopengl/camera.h>
 #include <learnopengl/model.h>
 #include <iostream>
+#include <stb_image.h>
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 
@@ -33,6 +34,8 @@ bool blinn = false;
 bool blinnKeyPressed = false;
 bool freeCamKeyPressed = false;
 
+glm::vec3 lightColor = glm::vec3(120.0f,80.0f,45.0f);
+
 // camera
 float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
@@ -51,23 +54,46 @@ struct PointLight {
     float quadratic;
 };
 
+struct DirLight {
+    glm::vec3 direction;
+    glm::vec3 ambient;
+    glm::vec3 diffuse;
+    glm::vec3 specular;
+};
+
+struct SpotLight {
+    float constant;
+    float linear;
+    float quadratic;
+};
+
+
 
 struct ProgramState {
     glm::vec3 clearColor = glm::vec3(0);
     bool ImGuiEnabled = false;
     Camera camera;
     bool CameraMouseMovementUpdateEnabled = true;
-    glm::vec3 farmHousePosition = glm::vec3(-2.0f, 0.0f, 2.0f);
-    float farmHouseRotation = 178.0f;
-    float farmHouseScale = 0.6f;
-    glm::vec3 treePosition = glm::vec3(9.0f, 0.0f, 3.0f);
-    glm::vec3 tree2Position = glm::vec3(-13.0f, 0.0f, 3.0f);
-    float treeScale = 0.8f;
-    glm::vec3 backpackPosition = glm::vec3(10.0f, 3.0f, 10.0f);
-    float backpackScale = 1.2f;
+
+    //house
+    glm::vec3 housePosition = glm::vec3(0.0f, 0.0f, -15.0f);
+    float houseRotation = 0.0f;
+    float houseScale = 1.6f;
+
+    //trees
+    glm::vec3 treePosition = glm::vec3(15.0f, 0.0f, 9.0f);
+    glm::vec3 tree2Position = glm::vec3(-13.0f, 0.0f, 9.0f);
+    float treeScale = 6.7f;
+
+    //campfire
+    glm::vec3 campfirePosition = glm::vec3(2.0f, 0.0f, 12.0f);
+    float campfireScale = 1.0f;
+
     PointLight pointLight;
+    DirLight dirLight;
+    SpotLight spotLight;
     ProgramState()
-            : camera(glm::vec3(24.0f, 3.0f, 22.0f)) {}
+            : camera(glm::vec3(2.5f, 3.0f, 30.0f)) {}
     void SaveToFile(std::string filename);
     void LoadFromFile(std::string filename);
 };
@@ -113,7 +139,7 @@ int main() {
 #endif
     // glfw window creation
     // --------------------
-    GLFWwindow *window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
+    GLFWwindow *window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Computer Graphics Project", NULL, NULL);
     if (window == NULL) {
         std::cout << "Failed to create GLFW window" << std::endl;
         glfwTerminate();
@@ -148,37 +174,51 @@ int main() {
     ImGui_ImplOpenGL3_Init("#version 330 core");
     // configure global opengl state
     // -----------------------------
-    glEnable(GL_DEPTH_TEST);
-    //glEnable(GL_CULL_FACE);
 
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_FRONT);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     // build and compile shaders
     // -------------------------
 
     Shader modelShader("resources/shaders/model_light.vs", "resources/shaders/model_light.fs");
     Shader skyboxShader("resources/shaders/skybox.vs", "resources/shaders/skybox.fs");
+    Shader cometShader("resources/shaders/blending.vs", "resources/shaders/blending.fs");
 
     // load models
     // -----------
-    Model backpackModel("resources/objects/backpack/backpack.obj");
-    backpackModel.SetShaderTextureNamePrefix("material.");
 
-    Model treeModel("resources/objects/tree/MapleTree.obj");
+    Model treeModel("resources/objects/tree/tree.obj");
     treeModel.SetShaderTextureNamePrefix("material.");
 
-    Model farmHouseModel("resources/objects/farmHouse/farmhouse_obj.obj");
-    farmHouseModel.SetShaderTextureNamePrefix("material.");
+    Model houseModel("resources/objects/house/house.obj");
+    houseModel.SetShaderTextureNamePrefix("material.");
+
+    Model campfireModel("resources/objects/campfire/campfire.obj");
+    campfireModel.SetShaderTextureNamePrefix("material.");
 
 
     PointLight& pointLight = programState->pointLight;
-    pointLight.position = glm::vec3(0.0f, 2.0, 1.0);
-    pointLight.ambient = glm::vec3(0.1, 0.1, 0.1);
-    pointLight.diffuse = glm::vec3(0.6, 0.6, 0.6);
-    pointLight.specular = glm::vec3(1.0, 1.0, 1.0);
+    pointLight.position = glm::vec3(15.0f, 20.0, 25.0);
+    pointLight.ambient = glm::vec3(lightColor.x*0.1, lightColor.y*0.1, lightColor.z*0.1);
+    pointLight.diffuse = lightColor;
+    pointLight.specular = lightColor;
     pointLight.constant = 1.0f;
     pointLight.linear = 0.09f;
     pointLight.quadratic = 0.032f;
 
+    DirLight& dirLight = programState->dirLight;
+    dirLight.direction = glm::vec3(6.0f, 8.0f, 23.0f);
+    dirLight.ambient =   glm::vec3(0.05f, 0.05f, 0.20f);
+    dirLight.diffuse =   glm::vec3( 0.4f, 0.4f, 0.6f);
+    dirLight.specular =  glm::vec3(0.5f, 0.5f, 0.7f);
 
+    SpotLight& spotLight = programState->spotLight;
+    spotLight.constant = 1.0f;
+    spotLight.linear = 0.12f;
+    spotLight.quadratic = 0.04f;
 
 
     float terrainVertices[] = {
@@ -190,20 +230,6 @@ int main() {
             25.0f,  0.0f, -25.0f, 0.0f, 1.0f, 0.0f, 20.0f, 20.0f,
             -25.0f,  0.0f, -25.0f, 0.0f, 1.0f, 0.0f, 0.0f, 20.0f
     };
-
-
-    unsigned int terrainVAO, terrainVBO;
-    glGenVertexArrays(1, &terrainVAO);
-    glGenBuffers(1, &terrainVBO);
-    glBindVertexArray(terrainVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, terrainVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(terrainVertices), &terrainVertices, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8*sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8*sizeof(float), (void*)(3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8*sizeof(float), (void*)(6* sizeof(float)));
-    glEnableVertexAttribArray(2);
 
     float skyboxVertices[] = {
             // positions
@@ -250,6 +276,33 @@ int main() {
             1.0f, -1.0f,  1.0f
     };
 
+    float transparentVertices[] = {
+            // positions         // texture Coords (swapped y coordinates because texture is flipped upside down)
+            0.0f,  0.5f,  0.0f, 0.0f,
+            0.0f, -0.5f, 0.0f, 1.0f,
+            1.0f, -0.5f, 0.0f, 1.0f,
+
+            0.0f,  0.5f,  0.0f, 0.0f,
+            1.0f, -0.5f,  0.0f, 1.0f,
+            1.0f,  0.5f,  0.0f, 0.0f
+    };
+
+
+    // terrain
+    unsigned int terrainVAO, terrainVBO;
+    glGenVertexArrays(1, &terrainVAO);
+    glGenBuffers(1, &terrainVBO);
+    glBindVertexArray(terrainVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, terrainVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(terrainVertices), &terrainVertices, GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8*sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8*sizeof(float), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8*sizeof(float), (void*)(6* sizeof(float)));
+    glEnableVertexAttribArray(2);
+
+    // skybox
     unsigned int skyboxVAO, skyboxVBO;
     glGenVertexArrays(1, &skyboxVAO);
     glGenBuffers(1, &skyboxVBO);
@@ -259,34 +312,25 @@ int main() {
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3*sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
 
-    float transparentVertices[] = {
-            // positions         // texture Coords (swapped y coordinates because texture is flipped upside down)
-            0.0f,  0.5f,  0.0f, 0.0f, 1.0f, 0.0f,  0.0f,  0.0f,
-            0.0f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f,   0.0f,  1.0f,
-            1.0f, -0.5f,0.0f, 0.0f, 1.0f, 0.0f,   1.0f,  1.0f,
-
-            0.0f,  0.5f,  0.0f,0.0f, 1.0f, 0.0f,  0.0f,  0.0f,
-            1.0f, -0.5f,  0.0f,0.0f, 1.0f, 0.0f,  1.0f,  1.0f,
-            1.0f,  0.5f,  0.0f,0.0f, 1.0f, 0.0f,  1.0f,  0.0f
-    };
-
+    // transparent
     unsigned int transparentVAO, transparentVBO;
     glGenVertexArrays(1, &transparentVAO);
     glGenBuffers(1, &transparentVBO);
     glBindVertexArray(transparentVAO);
     glBindBuffer(GL_ARRAY_BUFFER, transparentVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(transparentVertices), &transparentVertices, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(transparentVertices), transparentVertices, GL_STATIC_DRAW);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8*sizeof(float), (void*)(3 * sizeof(float)));
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8*sizeof(float), (void*)(6* sizeof(float)));
-    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
     glBindVertexArray(0);
 
     //load textures
     //------------
     unsigned int terrainTexture = loadTexture(FileSystem::getPath("/resources/textures/terrain.jpeg").c_str());
+    unsigned int cometTexture = loadTexture(FileSystem::getPath("resources/textures/comet.png").c_str());
+
+
     // draw in wireframe
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
@@ -300,6 +344,19 @@ int main() {
                     FileSystem::getPath("/resources/textures/skybox/back.png")
             };
     unsigned int cubemapTexture = loadCubemap(faces);
+
+    vector<glm::vec3> comets
+            {
+                    glm::vec3(0.0f, 1.0f, -7.0f),
+                    glm::vec3(2.0f, 1.5f, -4.0f),
+                    glm::vec3(1.0f, 1.0f, -6.0f)
+            };
+
+    cometShader.use();
+    cometShader.setInt("texture1", 0);
+
+    skyboxShader.use();
+    skyboxShader.setInt("skybox", 0);
 
 
     // render loop
@@ -321,11 +378,13 @@ int main() {
         // don't forget to enable shader before setting uniforms
 
         modelShader.use();
+
         //directional light
-        modelShader.setVec3("dirLight.direction", -1.0f, -0.2f, -0.3f);
-        modelShader.setVec3("dirLight.ambient", 0.05f, 0.05f, 0.20f);
-        modelShader.setVec3("dirLight.diffuse", 0.4f, 0.4f, 0.6f);
-        modelShader.setVec3("dirLight.specular", 0.5f, 0.5f, 0.7f);
+        modelShader.setVec3("dirLight.direction", dirLight.direction);
+        modelShader.setVec3("dirLight.ambient", dirLight.ambient);
+        modelShader.setVec3("dirLight.diffuse", dirLight.diffuse);
+        modelShader.setVec3("dirLight.specular", dirLight.specular);
+
         //point light
         modelShader.setVec3("pointLight.position", pointLight.position);
         modelShader.setVec3("pointLight.ambient", pointLight.ambient);
@@ -334,20 +393,22 @@ int main() {
         modelShader.setFloat("pointLight.constant", pointLight.constant);
         modelShader.setFloat("pointLight.linear", pointLight.linear);
         modelShader.setFloat("pointLight.quadratic", pointLight.quadratic);
+
         //spotlight (turn on if u want flashlight)
         modelShader.setVec3("spotLight.position", programState->camera.Position);
         modelShader.setVec3("spotLight.direction", programState->camera.Front);
         modelShader.setVec3("spotLight.ambient", 0.0f, 0.0f, 0.0f);
         modelShader.setVec3("spotLight.diffuse", 1.0f, 1.0f, 1.0f);
         modelShader.setVec3("spotLight.specular", 1.0f, 1.0f, 1.0f);
-        modelShader.setFloat("spotLight.constant", 1.0f);
-        modelShader.setFloat("spotLight.linear", 0.09);
-        modelShader.setFloat("spotLight.quadratic", 0.032);
+        modelShader.setFloat("spotLight.constant", spotLight.constant);
+        modelShader.setFloat("spotLight.linear", spotLight.linear);
+        modelShader.setFloat("spotLight.quadratic", spotLight.quadratic);
         modelShader.setFloat("spotLight.cutOff", glm::cos(glm::radians(12.5f)));
         modelShader.setFloat("spotLight.outerCutOff", glm::cos(glm::radians(15.0f)));
         modelShader.setVec3("viewPos", programState->camera.Position);
         modelShader.setFloat("material.shininess", 32.0f);
         modelShader.setInt("blinn", blinn);
+
         // view/projection transformations
         glm::mat4 view = programState->camera.GetViewMatrix();
         glm::mat4 projection = glm::perspective(glm::radians(programState->camera.Zoom),
@@ -355,16 +416,11 @@ int main() {
         modelShader.setMat4("projection", projection);
         modelShader.setMat4("view", view);
 
+
         // render the loaded model
-        /*glm::mat4 model = glm::mat4(1.0f);
-        model = glm::translate(model,
-                               programState->backpackPosition); // translate it down so it's at the center of the scene
-        model = glm::scale(model, glm::vec3(programState->backpackScale));    // it's a bit too big for our scene, so scale it down
-
-        modelShader.setMat4("model", model);
-        backpackModel.Draw(modelShader);*/
-
         glm::mat4 model = glm::mat4(1.0f);
+
+        // tree
         model = glm::translate(model,
                                programState->treePosition);
         model = glm::scale(model,
@@ -372,6 +428,7 @@ int main() {
         modelShader.setMat4("model", model);
         treeModel.Draw(modelShader);
 
+        // tree
         model = glm::mat4(1.0f);
         model = glm::translate(model,
                                programState->tree2Position);
@@ -380,15 +437,27 @@ int main() {
         modelShader.setMat4("model", model);
         treeModel.Draw(modelShader);
 
+        glDisable(GL_CULL_FACE);
+
+        // campfire
         model = glm::mat4(1.0f);
         model = glm::translate(model,
-                               programState->farmHousePosition);
-        model = glm::rotate(model,
-                            glm::radians(programState->farmHouseRotation), glm::vec3(0, 1, 0));
+                               programState->campfirePosition);
         model = glm::scale(model,
-                           glm::vec3(programState->farmHouseScale));
+                           glm::vec3(programState->campfireScale));
         modelShader.setMat4("model", model);
-        farmHouseModel.Draw(modelShader);
+        campfireModel.Draw(modelShader);
+
+        // house
+        model = glm::mat4(1.0f);
+        model = glm::translate(model,
+                               programState->housePosition);
+        model = glm::rotate(model,
+                            glm::radians(programState->houseRotation), glm::vec3(0, 1, 0));
+        model = glm::scale(model,
+                           glm::vec3(programState->houseScale));
+        modelShader.setMat4("model", model);
+        houseModel.Draw(modelShader);
 
         glActiveTexture(GL_TEXTURE0);
         glBindVertexArray(terrainVAO);
@@ -397,6 +466,19 @@ int main() {
         modelShader.setMat4("model", model);
         glDrawArrays(GL_TRIANGLES, 0, 6);
 
+        cometShader.use();
+        cometShader.setMat4("projection", projection);
+        cometShader.setMat4("view", view);
+        glBindVertexArray(transparentVAO);
+        glBindTexture(GL_TEXTURE_2D, cometTexture);
+        for (unsigned int i = 0; i < comets.size(); i++)
+        {
+            model = glm::mat4(1.0f);
+            model = glm::translate(model, comets[i]);
+            model = glm::scale(model, glm::vec3(20.5f));
+            cometShader.setMat4("model", model);
+            glDrawArrays(GL_TRIANGLES, 0, 6);
+        }
 
         // draw skybox as last
         glDepthFunc(GL_LEQUAL); // change depth function so depth test passes when values are equal to depth buffer's content
@@ -406,7 +488,7 @@ int main() {
         skyboxShader.setMat4("projection", projection);
         //skybox cube
         glBindVertexArray(skyboxVAO);
-        //glActiveTexture(GL_TEXTURE0);
+        glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
         glDrawArrays(GL_TRIANGLES, 0, 36);
         glBindVertexArray(0);
@@ -495,17 +577,23 @@ void DrawImGui(ProgramState *programState) {
     {
         static float f = 0.0f;
         ImGui::Begin("Hello window");
-        ImGui::Text("Hello text");
-        ImGui::SliderFloat("Float slider", &f, 0.0, 1.0);
-        ImGui::ColorEdit3("Background color", (float *) &programState->clearColor);
+        ImGui::Text("DirLight:");
+        ImGui::DragFloat3("dirLight.direction", (float*)&programState->dirLight.direction);
+        ImGui::DragFloat3("dirLight.ambient",  (float*)  &programState->dirLight.ambient);
+        ImGui::DragFloat3("dirLight.diffuse", (float*) &programState->dirLight.diffuse);
+        ImGui::DragFloat3("dirLight.specular",(float*) &programState->dirLight.specular);
+        ImGui::Text("SpotLight:");
+        ImGui::DragFloat("spotLight.constant", &programState->spotLight.constant, 0.05, 0.0, 3.0);
+        ImGui::DragFloat("spotLight.linear", &programState->spotLight.linear, 0.05, 0.0, 3.0);
+        ImGui::DragFloat("spotLight.quadratic", &programState->spotLight.quadratic, 0.05, 0.0, 3.0);
         ImGui::Text("PointLight:");
-        ImGui::DragFloat("pointLight.constant", &programState->pointLight.constant, 0.05, 0.0, 3.0);
-        ImGui::DragFloat("pointLight.linear", &programState->pointLight.linear, 0.05, 0.0, 3.0);
+        ImGui::DragFloat("pointLight.constant", &programState->pointLight.constant, 0.05, 0.0, 30.0);
+        ImGui::DragFloat("pointLight.linear", &programState->pointLight.linear, 0.05, 0.0, 30.0);
         ImGui::DragFloat("pointLight.quadratic", &programState->pointLight.quadratic, 0.05, 0.0, 3.0);
         ImGui::Text("Farmhouse: ");
-        ImGui::DragFloat3("Farmhouse position", (float*)&programState->farmHousePosition);
-        ImGui::DragFloat("Farmhouse rotation", &programState->farmHouseRotation, 1.0, 0, 360);
-        ImGui::DragFloat("Farmhouse scale", &programState->farmHouseScale, 1.0, 400.0, 500.0);
+        ImGui::DragFloat3("Farmhouse position", (float*)&programState->housePosition);
+        ImGui::DragFloat("Farmhouse rotation", &programState->houseRotation, 1.0, 0, 360);
+        ImGui::DragFloat("Farmhouse scale", &programState->houseScale, 0.2, 0.2, 500.0);
         ImGui::End();
     }
     {
