@@ -210,7 +210,7 @@ int main() {
     pointLight.quadratic = 0.032f;
 
     DirLight& dirLight = programState->dirLight;
-    dirLight.direction = glm::vec3(6.0f, 8.0f, 23.0f);
+    dirLight.direction = glm::vec3(6.0f, 8.0f, -53.0f);
     dirLight.ambient =   glm::vec3(0.05f, 0.05f, 0.20f);
     dirLight.diffuse =   glm::vec3( 0.4f, 0.4f, 0.6f);
     dirLight.specular =  glm::vec3(0.5f, 0.5f, 0.7f);
@@ -222,7 +222,6 @@ int main() {
 
 
     float terrainVertices[] = {
-            // positions                             //normals                       // texture Coords (swapped y coordinates because texture is flipped upside down)
             25.0f,  0.0f,  25.0f, 0.0f, 1.0f, 0.0f, 20.0f, 0.0f,
             -25.0f,  0.0f, -25.0f, 0.0f, 1.0f, 0.0f, 0.0f, 20.0f,
             -25.0f,  0.0f,  25.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f,
@@ -508,6 +507,13 @@ int main() {
     ImGui::DestroyContext();
     // glfw: terminate, clearing all previously allocated GLFW resources.
     // ------------------------------------------------------------------
+    glDeleteVertexArrays(1, &terrainVAO);
+    glDeleteBuffers(1, &terrainVBO);
+    glDeleteVertexArrays(1, &transparentVAO);
+    glDeleteBuffers(1, &transparentVBO);
+    glDeleteVertexArrays(1, &skyboxVAO);
+    glDeleteBuffers(1, &skyboxVBO);
+
     glfwTerminate();
     return 0;
 }
