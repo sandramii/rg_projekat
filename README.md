@@ -13,4 +13,4 @@ This project demonstrates a 3D graphics application using OpenGL, GLFW, and ImGu
 -  **W, A, S, D**: Move the camera.
 -  **Q**: Toggle free camera mode.
 -  **B**: Toggle Blinn-Phong shading.
--  **ESC**: Exit the application.Controls
+-  **ESC**: Exit the application.
