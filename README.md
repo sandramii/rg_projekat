@@ -1,11 +1,16 @@
-# project_base
-Prazan projekat sa pratećim bibliotekama koje koristimo na času. 
+# Computer Graphics Project - OpenGL
+This project demonstrates a 3D graphics application using OpenGL, GLFW, and ImGui. The application features a simple scene with various objects, lighting effects, and interactive controls.
 
-# Uputstvo
-1. `git clone https://github.com/matf-racunarska-grafika/project_base.git`
-2. CLion -> Open -> path/to/my/project_base
-3. Main se nalazi u src/main.cpp
-4. Cpp fajlovi idu u src folder
-5. Zaglavlja (h i hpp) fajlovi idu u include
-6. Šejderi idu u folder shaders. `Vertex shader` ima ekstenziju `.vs`, `fragment shader` ima ekstenziju `.fs`
-7. ALT+SHIFT+F10 -> project_base -> run
+## Features
+
+- **3D Models**: Includes models for a house, trees, and a campfire.
+- **Lighting**: Supports multiple types of lighting including directional, point, and spotlight.
+- **Skybox**: A skybox that surrounds the scene.
+- **Comets**: Rendered with transparency to add visual effects.
+- **ImGui Integration**: Optional GUI controls to adjust the scene's settings.
+
+## Controls
+-  **W, A, S, D**: Move the camera.
+-  **Q**: Toggle free camera mode.
+-  **B**: Toggle Blinn-Phong shading.
+-  **ESC**: Exit the application.
